@@ -1,5 +1,0 @@
-skill f(limbo) {
-    mana z;
-    z := 3.14;
-    drop z;
-}

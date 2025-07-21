@@ -1,19 +1,23 @@
+// Define que a estrutura Node será usada no %union e em %type
 %code requires {
     typedef struct Node Node;
 }
 
 %{
+// Inclusões padrão e definição da estrutura da árvore sintática
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Estrutura de um nó da árvore sintática
 typedef struct Node {
-    char name[50];
-    char value[50];
-    struct Node *left;
-    struct Node *right;
+    char name[50];           
+    char value[50];          
+    struct Node *left;       
+    struct Node *right;      
 } Node;
 
+// Cria um novo nó
 Node* createNode(const char* name, const char* value, Node* left, Node* right) {
     Node* n = (Node*)malloc(sizeof(Node));
     if (!n) {
@@ -30,6 +34,7 @@ Node* createNode(const char* name, const char* value, Node* left, Node* right) {
     return n;
 }
 
+// Imprime a árvore sintática no terminal com indentação
 void arvore(Node* root, int level) {
     if (!root) return;
     for (int i = 0; i < level; i++) printf("  ");
@@ -41,7 +46,8 @@ void arvore(Node* root, int level) {
     arvore(root->right, level + 1);
 }
 
-void arvoretxt(Node* root, int level, FILE* out) 
+// Grava a árvore sintática em arquivo
+void arvoretxt(Node* root, int level, FILE* out) {
     if (!root) return;
     for (int i = 0; i < level; i++) fprintf(out, "  ");
     if (strlen(root->value))
@@ -52,6 +58,7 @@ void arvoretxt(Node* root, int level, FILE* out)
     arvoretxt(root->right, level + 1, out);
 }
 
+// Libera memória da árvore
 void liberar(Node* root) {
     if (!root) return;
     liberar(root->left);
@@ -59,59 +66,75 @@ void liberar(Node* root) {
     free(root);
 }
 
+// Função de erro
 void yyerror(const char* s) {
     fprintf(stderr, "Erro: %s\n", s);
 }
 
+// Declaração do analisador léxico
 int yylex();
 %}
 
+// União de tipos usados pelo parser
 %union {
     char* str;
     Node* node;
 }
 
+// Espera um único conflito shift/reduce
 %expect 1
 
+// Tokens com valor do tipo string
 %token <str> ID NUM STRING_LITERAL FSTRING
+
+// Palavras-chave da linguagem fictícia
 %token XP MANA LABEL LIMBO ARGS CHAT_FUNC SCAN CHECKPOINT GAMEOVER COMBO RESPAWN RAGEQUIT
 %token BUILD FASE FALLBACK SKILL DROP BUFF NERF TO INVENTARIO
+
+// Operadores e símbolos
 %token WALRUS PLUS MINUS MULT DIV LPAREN RPAREN LBRACE RBRACE SEMICOLON
 %token ANDAND OROR EQEQ LT LE GT GE NE
 %token LBRACKET RBRACKET COMMA PERCENT PLUSPLUS MINUSMINUS NOT PLUSEQ MINUSEQ COLON
 %token INVALIDO FSTRING_START
 
+// Regras de precedência
 %nonassoc LOWER_THAN_GAMEOVER
 %nonassoc GAMEOVER
 %left LT LE GT GE EQEQ NE
 %left PLUS MINUS
 %left MULT DIV
 
+// Não-terminais e seus tipos associados
 %type <node> program statement_list stmt decl atr checkpoint_stmt respawn_stmt skill_def drop_stmt bloco expressao tipo lvalue 
 %type <node> expr_list non_empty_expr_list param_list param_decl arg_list chat_stmt fstring iterador combo_stmt
 
 %%
 
+// Regra inicial: programa = lista de comandos
 program:
     statement_list {
+        Node* raiz = createNode("program", NULL, $1, NULL);  
         printf("Arvore Sintatica:\n");
-        arvore($1, 0);
+        arvore(raiz, 0);
+
         FILE *sin_file = fopen("arvore.txt", "w");
         if (!sin_file) {
             fprintf(stderr, "Erro ao abrir arvore.txt\n");
             exit(1);
         }
-        arvoretxt($1, 0, sin_file);
+        arvoretxt(raiz, 0, sin_file);
         fclose(sin_file);
-        liberar($1);
+        liberar(raiz);
     }
 ;
 
+// Lista de comandos
 statement_list:
       statement_list stmt { $$ = createNode("statement_list", NULL, $1, $2); }
     | stmt                { $$ = $1; }
 ;
 
+// Um comando pode ser declaração, atribuição, função, bloco, etc.
 stmt:
       decl                { $$ = $1; }
     | atr                 { $$ = $1; }
@@ -125,6 +148,7 @@ stmt:
     | expressao SEMICOLON { $$ = $1; }
 ;
 
+// Declarações (variáveis e vetores)
 decl:
       tipo ID LBRACKET NUM RBRACKET WALRUS LBRACE expr_list RBRACE SEMICOLON {
           $$ = createNode("decl-array-xp", NULL, 
@@ -145,12 +169,14 @@ decl:
       }
 ;
 
+// Estrutura de laço combo
 combo_stmt:
     COMBO LPAREN iterador RPAREN bloco {
         $$ = createNode("combo", NULL, $3, $5);
     }
 ;
 
+// Iterador do combo (for)
 iterador:
     tipo ID WALRUS expressao TO expressao {
         Node* var_decl = createNode("decl-xp", NULL, createNode("ID", $2, NULL, NULL), $4);
@@ -158,15 +184,18 @@ iterador:
     }
 ;
 
+// Lvalue: variável ou acesso a vetor
 lvalue:
       ID                             { $$ = createNode("ID", $1, NULL, NULL); }
     | ID LBRACKET expressao RBRACKET { $$ = createNode("array_access", NULL, createNode("ID", $1, NULL, NULL), $3); }
 ;
 
+// Atribuição
 atr:
     lvalue WALRUS expressao SEMICOLON { $$ = createNode("atribuicao", NULL, $1, $3); }
 ;
 
+// Checkpoint com ou sem gameover
 checkpoint_stmt:
     CHECKPOINT LPAREN expressao RPAREN stmt %prec LOWER_THAN_GAMEOVER { 
         $$ = createNode("checkpoint", NULL, $3, $5); 
@@ -176,19 +205,23 @@ checkpoint_stmt:
     }
 ;
 
+// Comando respawn
 respawn_stmt:
     RESPAWN LPAREN expressao RPAREN stmt { $$ = createNode("respawn", NULL, $3, $5); }
 ;
 
+// Comando drop
 drop_stmt:
       DROP SEMICOLON                 { $$ = createNode("drop", "limbo", NULL, NULL); }
     | DROP expressao SEMICOLON      { $$ = createNode("drop", NULL, $2, NULL); }
 ;
 
+// Bloco de comandos entre chaves
 bloco:
     LBRACE statement_list RBRACE    { $$ = $2; }
 ;
 
+// Declaração de função skill
 skill_def:
     SKILL ID LPAREN param_list RPAREN bloco {
       $$ = createNode("func_def", NULL, 
@@ -196,6 +229,7 @@ skill_def:
     }
 ;
 
+// Comando chat com string, fstring ou expressão
 chat_stmt:
       CHAT_FUNC LPAREN expressao RPAREN SEMICOLON {
           $$ = createNode("chat", NULL, $3, NULL);
@@ -208,28 +242,32 @@ chat_stmt:
       }
 ;
 
+// fstring (com interpolação)
 fstring:
     FSTRING { $$ = createNode("fstring", $1, NULL, NULL); }
 ;
 
+// Lista de parâmetros da função
 param_list:
-    
       /* vazio */                  { $$ = NULL; }
     | LIMBO                        { $$ = NULL; }
     | param_decl                   { $$ = $1; }
     | param_list COMMA param_decl  { $$ = createNode("param_list", NULL, $1, $3); }
 ;
 
+// Declaração de parâmetro
 param_decl:
     tipo ID { $$ = createNode("param", NULL, $1, createNode("ID", $2, NULL, NULL)); }
 ;
 
+// Lista de argumentos de chamada
 arg_list:
       /* vazio */                  { $$ = NULL; }
     | expressao                    { $$ = $1; }
     | arg_list COMMA expressao    { $$ = createNode("arg_list", NULL, $1, $3); }
 ;
 
+// Expressões
 expressao:
       ID LPAREN arg_list RPAREN       { $$ = createNode("call", $1, $3, NULL); }
     | ID LBRACKET expressao RBRACKET  { $$ = createNode("array_access", NULL, createNode("ID", $1, NULL, NULL), $3); }
@@ -249,33 +287,39 @@ expressao:
     | LPAREN expressao RPAREN         { $$ = $2; }
 ;
 
+// Tipos de dados válidos
 tipo:
       XP     { $$ = createNode("tipo", "xp", NULL, NULL); }
     | MANA   { $$ = createNode("tipo", "mana", NULL, NULL); }
     | LABEL  { $$ = createNode("tipo", "label", NULL, NULL); }
 ;
 
+// Lista de expressões
 expr_list:
     non_empty_expr_list             { $$ = $1; }
 ;
 
+// Lista não vazia de expressões separadas por vírgula
 non_empty_expr_list:
       expressao                     { $$ = createNode("expr_item", "", $1, NULL); }
     | expressao COMMA non_empty_expr_list { $$ = createNode("expr_list", "", createNode("expr_item", "", $1, NULL), $3); }
 ;
 %%
 
+// Código principal
+
 int yydebug = 0;
 FILE *tokens;
 
 int main() {
-    tokens = fopen("tokens.lex", "w");
+    tokens = fopen("tokens.lex", "w"); // Arquivo para registrar os tokens lidos
     if (!tokens) {
         fprintf(stderr, "Erro ao abrir tokens.lex.\n");
         exit(1);
     }
-    yydebug = 1;
-    yyparse();
-    fclose(tokens);
+    yydebug = 1; // Ativa modo debug do Bison (mostra reduções no terminal)
+    yyparse();   // Inicia o parser
+    fclose(tokens); // Fecha o arquivo ao final
     return 0;
 }
+

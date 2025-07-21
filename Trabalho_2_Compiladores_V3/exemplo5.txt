@@ -1,0 +1,10 @@
+xp vida := 10;
+mana energia := 5.5;
+subtitle mensagem := "Olá";
+
+checkpoint(vida >= 5) {
+    energia := energia + 0.5;
+    mensagem := "Novo valor";
+}gameover{
+	energia := energia - 0.5;
+}

@@ -1,0 +1,3 @@
+x := sum(x, arr[1]);
+y := f();
+display(x);

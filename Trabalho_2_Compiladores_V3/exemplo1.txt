@@ -1,0 +1,5 @@
+skill display(xp val) {
+    // (Imaginando uma função que imprime o valor)
+    // Esta função não retorna nada.
+    drop;
+}

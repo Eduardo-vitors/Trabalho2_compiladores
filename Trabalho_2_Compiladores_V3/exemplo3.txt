@@ -1,0 +1,7 @@
+skill multiplicar(xp a, xp b) {
+    xp resultado := a * b;
+    drop resultado;
+}
+
+xp total := multiplicar(6, 7);
+chat(f"Resultado da multiplicação: {total}");

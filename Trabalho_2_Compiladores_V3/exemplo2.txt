@@ -1,0 +1,14 @@
+chat("Quantas notas deseja calcular?");
+xp qtd := scan();
+
+label notas[qtd];
+xp soma := 0;
+
+combo (xp i := 0 to qtd - 1){
+    chat(f"Digite a nota {i + 1}");
+    notas[i] := scan();
+    soma := soma + notas[i];
+}
+
+mana media := soma / qtd;
+chat(f"Media final: {media}");

@@ -1,0 +1,7 @@
+xp soma := 0;
+
+combo (xp i := 1 to 5) {
+    soma := soma + i;
+}
+
+chat(f"Soma de 1 a 5: {soma}");

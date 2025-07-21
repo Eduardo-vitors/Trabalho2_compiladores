@@ -1,0 +1,8 @@
+xp vida := 3;
+
+respawn (vida > 0) {
+    chat(f"Vida atual: {vida}");
+    vida := vida - 1;
+}
+
+chat("Game Over!");

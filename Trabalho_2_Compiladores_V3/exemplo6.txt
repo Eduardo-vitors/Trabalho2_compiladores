@@ -1,0 +1,12 @@
+xp x := 10;
+mana y := 20.1;
+
+checkpoint (x < y) {
+    x := x + 5;
+} gameover {
+    y := y - 5;
+}
+
+checkpoint (x =~= y) {
+    x := 19;
+}

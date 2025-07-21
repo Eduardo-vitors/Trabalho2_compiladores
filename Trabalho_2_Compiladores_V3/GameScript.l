@@ -16,6 +16,7 @@ typedef struct {
 Identifier identifiers[100];
 int identifier_count = 0;
 
+ /* Função que busca um identificador na tabela */
 int find_identifier(char *id) {
     for (int i = 0; i < identifier_count; i++) {
         if (strcmp(identifiers[i].id, id) == 0)
@@ -24,6 +25,7 @@ int find_identifier(char *id) {
     return -1;
 }
 
+ /* Função para adicionar um novo identificador à tabela*/
 void add_identifier(char *id, char *type) {
     int idx = find_identifier(id);
     if (idx == -1) {
@@ -37,6 +39,7 @@ void add_identifier(char *id, char *type) {
 }
 %}
 
+ /*  Definições de padrões regulares (tokens)*/
 DIGIT       [0-9]+
 FLOAT       [0-9]+\.[0-9]+
 ID          [a-zA-Z_][a-zA-Z0-9_]*
@@ -45,6 +48,7 @@ STRING      \"(\\.|[^\"\\])*\"
 
 %%
 
+ /*Palavras-chave da linguagem (temática de RPG/jogos)*/
 xp          { fprintf(tokens, "<xp> ");         return XP; }
 mana        { fprintf(tokens, "<mana> ");       return MANA; }
 label       { fprintf(tokens, "<label> ");      return LABEL; }
@@ -67,6 +71,7 @@ nerf        { fprintf(tokens, "<nerf> ");       return NERF; }
 to          { fprintf(tokens, "<to> ");         return TO; }
 inventario  { fprintf(tokens, "<inventario> "); return INVENTARIO; }
 
+ /*Operadores e símbolos*/
 ":="        { fprintf(tokens, "<:= > ");  return WALRUS; }
 "&&"        { fprintf(tokens, "<&&> ");   return ANDAND; }
 "||"        { fprintf(tokens, "<||> ");   return OROR; }
@@ -96,6 +101,7 @@ inventario  { fprintf(tokens, "<inventario> "); return INVENTARIO; }
 "-:="       { fprintf(tokens, "<-:=> ");  return MINUSEQ; }
 ":"         { fprintf(tokens, "<:> ");    return COLON; }
 
+ /* F-String com interpolação, exemplo: f"Olá {xp + 1}"*/
 f\"([^\"\\{]*)\{([^}]*)\}\" {
     char* full = strdup(yytext);
     yylval.str = full;
@@ -132,6 +138,7 @@ f\"([^\"\\{]*)\{([^}]*)\}\" {
 
 {WHITESPACE}            { /* ignora espaços */ }
 
+ /* Qualquer caractere não reconhecido*/
 . {
     fprintf(tokens, "<invalido, %s> ", yytext);
     return INVALIDO;
